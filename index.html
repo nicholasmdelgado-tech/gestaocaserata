@@ -1,515 +1,86 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gestão Queijaria</title>
-
-  <!-- Tailwind -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Queijaria</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- IMask -->
   <script src="https://unpkg.com/imask"></script>
-  <!-- Export libs -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-
-  <style>
-    body { background: #F7FAF5; }
-    .table-wrapper { max-height: 52vh; overflow:auto; }
-    .modal-backdrop { background: rgba(0,0,0,0.45); }
-    #toastContainer { position: fixed; right: 20px; top: 20px; z-index: 60; display:flex; flex-direction:column; gap:8px; }
-  </style>
 </head>
-<body class="min-h-screen font-sans text-gray-800">
+<body class="bg-gray-100 min-h-screen flex">
 
-<div id="toastContainer" aria-live="polite"></div>
-
-<div class="flex min-h-screen">
-  <!-- Sidebar -->
-  <aside class="w-72 bg-green-800 text-white p-6">
-    <h1 class="text-2xl font-bold mb-6">🧀 Gestão Queijaria</h1>
-    <nav class="space-y-3">
-      <button class="menu-btn block w-full text-left px-4 py-2 rounded bg-green-700 hover:bg-green-600" data-section="dashboard">📊 Dashboard</button>
-      <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-green-700" data-section="clientes">👥 Clientes</button>
-      <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-green-700" data-section="produtos">📦 Produtos</button>
-      <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-green-700" data-section="estoque">🧺 Estoque</button>
-      <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-green-700" data-section="vendas">💳 Vendas</button>
+  <!-- MENU LATERAL -->
+  <aside class="w-64 bg-green-800 text-white flex flex-col">
+    <div class="text-2xl font-bold text-center py-4 border-b border-green-700">🧀 Queijaria</div>
+    <nav class="flex-1 p-4 space-y-2">
+      <button class="menu-item w-full text-left px-4 py-2 rounded hover:bg-green-700" data-target="dashboard">🏠 Dashboard</button>
+      <button class="menu-item w-full text-left px-4 py-2 rounded hover:bg-green-700" data-target="clientes">👥 Clientes</button>
+      <button class="menu-item w-full text-left px-4 py-2 rounded hover:bg-green-700" data-target="produtos">📦 Produtos</button>
+      <button class="menu-item w-full text-left px-4 py-2 rounded hover:bg-green-700" data-target="estoque">🧺 Estoque</button>
+      <button class="menu-item w-full text-left px-4 py-2 rounded hover:bg-green-700" data-target="vendas">💰 Vendas</button>
     </nav>
-    <p class="mt-8 text-sm text-green-100">Dados no navegador (LocalStorage).</p>
   </aside>
 
-  <!-- Main -->
-  <main class="flex-1 p-8 space-y-8 overflow-auto">
+  <!-- CONTEÚDO PRINCIPAL -->
+  <main class="flex-1 p-6 overflow-y-auto">
 
     <!-- DASHBOARD -->
     <section id="dashboard" class="content-section">
-      <h2 class="text-2xl font-semibold mb-4">📊 Dashboard</h2>
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white shadow rounded p-4 text-center">
-          <h3 class="text-gray-500">Clientes</h3>
-          <p id="dashClientes" class="text-3xl font-bold text-green-700">0</p>
-        </div>
-        <div class="bg-white shadow rounded p-4 text-center">
-          <h3 class="text-gray-500">Produtos</h3>
-          <p id="dashProdutos" class="text-3xl font-bold text-green-700">0</p>
-        </div>
-        <div class="bg-white shadow rounded p-4 text-center">
-          <h3 class="text-gray-500">Valor total do estoque</h3>
-          <p id="dashValorEstoque" class="text-2xl font-bold text-green-700">R$ 0,00</p>
-        </div>
-        <div class="bg-white shadow rounded p-4 text-center">
-          <h3 class="text-gray-500">Lucro potencial</h3>
-          <p id="dashLucroReal" class="text-xl font-semibold text-green-600">R$ 0,00</p>
-          <p id="dashLucroPct" class="text-sm text-gray-600">Lucro médio: 0%</p>
-          <p id="dashTotalVendas" class="text-sm text-gray-600 mt-2">Total vendas: R$ 0,00</p>
-          <p id="dashUltAtual" class="text-xs text-gray-400 mt-2">Última atual.: —</p>
-        </div>
-      </div>
+      <h1 class="text-2xl font-bold mb-4">🏠 Dashboard</h1>
+      <div id="cardsDashboard" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
     </section>
 
     <!-- CLIENTES -->
     <section id="clientes" class="content-section hidden">
-      <h2 class="text-2xl font-semibold mb-4">👥 Cadastro de Clientes</h2>
-
-      <form id="formCliente" class="grid md:grid-cols-2 gap-4 bg-white p-6 rounded shadow">
-        <input id="cliNome" placeholder="Nome completo *" class="border p-2 rounded" required>
-        <input id="cliCelular" placeholder="Celular (00) 00000-0000 *" class="border p-2 rounded" required>
-        <input id="cliEmail" placeholder="E-mail" class="border p-2 rounded">
-        <input id="cliCPF" placeholder="CPF *" class="border p-2 rounded" required>
-        <input id="cliRG" placeholder="RG" class="border p-2 rounded">
-        <div class="flex gap-2">
-          <input id="cliCEP" placeholder="CEP *" onblur="buscarCEP(this.value)" class="flex-1 border p-2 rounded" required>
-          <button type="button" onclick="buscarCEP(document.getElementById('cliCEP').value)" class="bg-green-600 text-white px-4 rounded">Buscar</button>
-        </div>
-        <input id="cliRua" placeholder="Rua" class="border p-2 rounded">
-        <input id="cliNumero" placeholder="Número *" class="border p-2 rounded" required>
-        <input id="cliBairro" placeholder="Bairro" class="border p-2 rounded">
-        <input id="cliCidade" placeholder="Cidade" class="border p-2 rounded">
-        <input id="cliEstado" placeholder="Estado" class="border p-2 rounded uppercase" maxlength="2">
-        <input id="cliComplemento" placeholder="Complemento" class="border p-2 rounded">
-        <input id="cliReferencia" placeholder="Referência" class="border p-2 rounded col-span-2">
-
-        <div class="col-span-2 flex justify-between items-center">
-          <div class="w-1/2">
-            <input id="buscarClienteSmart" placeholder="Buscar por nome, celular ou CPF..." class="border p-2 rounded w-full" />
-          </div>
-          <div class="text-right">
-            <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded">Salvar Cliente</button>
-          </div>
-        </div>
-      </form>
-
-      <div class="mt-6">
-        <div class="flex justify-between items-center mb-2">
-          <div></div>
-          <div>
-            <button onclick="exportarTabela('clientes','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded mr-2">⬇️ Excel</button>
-            <button onclick="exportarTabela('clientes','pdf')" class="bg-red-600 text-white px-3 py-1 rounded">⬇️ PDF</button>
-          </div>
-        </div>
-
-        <div class="table-wrapper bg-white rounded shadow">
-          <table class="min-w-full text-sm">
-            <thead class="bg-green-100 sticky top-0">
-              <tr>
-                <th class="p-2 text-left">Nome</th>
-                <th class="p-2">Celular</th>
-                <th class="p-2">E-mail</th>
-                <th class="p-2">CPF</th>
-                <th class="p-2">Endereço</th>
-                <th class="p-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="listaClientes"></tbody>
-          </table>
-        </div>
-      </div>
+      <h1 class="text-2xl font-bold mb-4">👥 Clientes</h1>
+      <div id="clientesForm"></div>
+      <div id="clientesTable"></div>
     </section>
 
     <!-- PRODUTOS -->
     <section id="produtos" class="content-section hidden">
-      <h2 class="text-2xl font-semibold mb-4">📦 Cadastro de Produtos</h2>
-
-      <form id="formProduto" class="grid md:grid-cols-3 gap-4 bg-white p-6 rounded shadow items-end">
-        <div class="col-span-2">
-          <input id="prodNome" placeholder="Nome do produto *" class="border p-2 rounded w-full" required>
-        </div>
-        <div>
-          <input list="listaCategorias" id="prodCategoria" placeholder="Categoria *" class="border p-2 rounded w-full" required>
-          <datalist id="listaCategorias"></datalist>
-        </div>
-
-        <div class="flex gap-2 items-center">
-          <input id="prodQuantidadeMedia" placeholder="Peso médio *" class="border p-2 rounded w-full" required>
-          <select id="prodUnidade" class="border p-2 rounded">
-            <option value="Kg">Kg</option>
-            <option value="L">L</option>
-            <option value="mL">mL</option>
-          </select>
-        </div>
-
-        <input id="prodCusto" placeholder="Preço de custo (R$) *" class="border p-2 rounded" required>
-        <input id="prodVenda" placeholder="Preço de venda (R$) *" class="border p-2 rounded" required>
-        <textarea id="prodObs" placeholder="Observações" class="border p-2 rounded col-span-3"></textarea>
-
-        <div class="col-span-3 text-right">
-          <button type="submit" class="bg-green-700 text-white px-4 py-2 rounded">Salvar Produto</button>
-        </div>
-      </form>
-
-      <div class="mt-6">
-        <div class="flex justify-between items-center mb-2">
-          <input id="buscarProduto" placeholder="Buscar produto..." class="border p-2 rounded w-1/2">
-          <div>
-            <button onclick="exportarTabela('produtos','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded mr-2">⬇️ Excel</button>
-            <button onclick="exportarTabela('produtos','pdf')" class="bg-red-600 text-white px-3 py-1 rounded">⬇️ PDF</button>
-          </div>
-        </div>
-
-        <div class="table-wrapper bg-white rounded shadow">
-          <table class="min-w-full text-sm">
-            <thead class="bg-green-100 sticky top-0">
-              <tr>
-                <th class="p-2 text-left">Produto</th>
-                <th class="p-2">Categoria</th>
-                <th class="p-2">Qtd. média</th>
-                <th class="p-2">Custo</th>
-                <th class="p-2">Venda</th>
-                <th class="p-2">Lucro (%)</th>
-                <th class="p-2">Qtd. em estoque</th>
-                <th class="p-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="listaProdutos"></tbody>
-          </table>
-        </div>
-      </div>
+      <h1 class="text-2xl font-bold mb-4">📦 Produtos</h1>
+      <div id="produtosForm"></div>
+      <div id="produtosTable"></div>
     </section>
 
     <!-- ESTOQUE -->
     <section id="estoque" class="content-section hidden">
-      <h2 class="text-2xl font-semibold mb-4">🧺 Controle de Estoque</h2>
-
-      <div class="bg-white p-4 rounded shadow mb-4">
-        <form id="formEstoque" class="grid md:grid-cols-4 gap-3 items-end">
+      <h1 class="text-2xl font-bold mb-4">🧺 Controle de Estoque</h1>
+      <form id="formEstoque" class="bg-white p-4 rounded-lg shadow-md mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label class="text-sm">Produto</label>
-            <select id="estProduto" class="border p-2 rounded w-full"></select>
-          </div>
-          <div>
-            <label class="text-sm">Lote</label>
-            <input id="estLote" class="border p-2 rounded w-full" />
+            <label class="block text-sm font-medium text-gray-700">Produto</label>
+            <select id="estoqueProduto" class="w-full border border-gray-300 p-2 rounded"></select>
           </div>
           <div>
-            <label class="text-sm">Quantidade</label>
-            <input id="estQuantidade" type="number" step="any" min="0.001" class="border p-2 rounded w-full" />
+            <label class="block text-sm font-medium text-gray-700">Lote</label>
+            <input type="text" id="estoqueLote" class="w-full border border-gray-300 p-2 rounded" required>
           </div>
-          <div class="text-right">
-            <button id="btnEntrada" class="bg-green-600 text-white px-4 py-2 rounded">Registrar Entrada</button>
-            <button id="btnSaida" class="bg-orange-500 text-white px-4 py-2 rounded ml-2">Registrar Saída</button>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Quantidade</label>
+            <input type="number" id="estoqueQtd" class="w-full border border-gray-300 p-2 rounded" required>
           </div>
-        </form>
-      </div>
-
-      <div class="table-wrapper bg-white rounded shadow">
-        <table class="min-w-full text-sm">
-          <thead class="bg-green-100 sticky top-0">
-            <tr>
-              <th class="p-2">Produto</th>
-              <th class="p-2">Lote</th>
-              <th class="p-2">Quantidade</th>
-              <th class="p-2">Últ. mov.</th>
-            </tr>
-          </thead>
-          <tbody id="tabelaEstoque"></tbody>
-        </table>
-      </div>
+          <div class="flex items-end gap-2">
+            <button type="button" id="btnEntrada" class="bg-green-600 text-white px-4 py-2 rounded">Registrar Entrada</button>
+            <button type="button" id="btnSaida" class="bg-orange-500 text-white px-4 py-2 rounded">Registrar Saída</button>
+          </div>
+        </div>
+      </form>
+      <div id="estoqueTable"></div>
     </section>
 
     <!-- VENDAS -->
     <section id="vendas" class="content-section hidden">
-      <h2 class="text-2xl font-semibold mb-4">💳 Vendas (PDV)</h2>
-
-      <div class="bg-white p-4 rounded shadow mb-4">
-        <div class="grid md:grid-cols-3 gap-3 items-end">
-          <div>
-            <label class="text-sm">Cliente</label>
-            <select id="saleCliente" class="border p-2 rounded w-full">
-              <option value="">-- Consumidor Final --</option>
-            </select>
-          </div>
-
-          <div>
-            <label class="text-sm">Produto</label>
-            <select id="saleProduto" class="border p-2 rounded w-full"></select>
-          </div>
-
-          <div>
-            <label class="text-sm">Quantidade</label>
-            <input id="saleQuantidade" type="number" step="any" min="0.001" class="border p-2 rounded w-full" value="1" />
-          </div>
-
-          <div>
-            <label class="text-sm">Lote</label>
-            <select id="saleLote" class="border p-2 rounded w-full"></select>
-          </div>
-
-          <div>
-            <label class="text-sm">Preço unitário</label>
-            <input id="salePreco" class="border p-2 rounded w-full" readonly />
-          </div>
-
-          <div>
-            <label class="text-sm">Desconto (%)</label>
-            <input id="saleDesconto" type="number" step="0.1" min="0" class="border p-2 rounded w-full" value="0" />
-          </div>
-
-          <div class="md:col-span-3">
-            <button id="btnAddItem" class="bg-blue-600 text-white px-4 py-2 rounded">➕ Adicionar Item</button>
-          </div>
-        </div>
-
-        <div class="mt-4 table-wrapper bg-gray-50 p-3 rounded">
-          <table class="min-w-full text-sm bg-white rounded">
-            <thead class="bg-green-100">
-              <tr>
-                <th class="p-2">Produto</th>
-                <th class="p-2">Lote</th>
-                <th class="p-2">Qtd</th>
-                <th class="p-2">Unid.</th>
-                <th class="p-2">Preço</th>
-                <th class="p-2">Total</th>
-                <th class="p-2">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="saleItens"></tbody>
-          </table>
-        </div>
-
-        <div class="mt-4 flex justify-between items-center">
-          <div>
-            <button id="btnCancelarVenda" class="bg-gray-400 text-white px-3 py-1 rounded">Cancelar</button>
-          </div>
-          <div class="text-right">
-            <p class="text-sm text-gray-600">Subtotal: <span id="saleSubtotal">R$ 0,00</span></p>
-            <p class="text-sm text-gray-600">Desconto: <span id="saleDescontoValor">R$ 0,00</span></p>
-            <p class="text-xl font-bold">Total: <span id="saleTotal">R$ 0,00</span></p>
-            <div class="mt-2">
-              <button id="btnFinalizarVenda" class="bg-green-700 text-white px-4 py-2 rounded">Finalizar Venda</button>
-              <button onclick="exportarTabela('vendas','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded ml-2">⬇️ Excel Vendas</button>
-              <button onclick="exportarTabela('vendas','pdf')" class="bg-red-600 text-white px-3 py-1 rounded ml-2">⬇️ PDF Vendas</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <h3 class="text-lg font-medium mb-2">Histórico de Vendas</h3>
-      <div class="table-wrapper bg-white rounded shadow">
-        <table class="min-w-full text-sm">
-          <thead class="bg-green-100 sticky top-0">
-            <tr>
-              <th class="p-2">Data</th>
-              <th class="p-2">Código</th>
-              <th class="p-2">Cliente</th>
-              <th class="p-2">Itens</th>
-              <th class="p-2">Total</th>
-              <th class="p-2">Ações</th>
-            </tr>
-          </thead>
-          <tbody id="listaVendas"></tbody>
-        </table>
-      </div>
+      <h1 class="text-2xl font-bold mb-4">💰 Vendas</h1>
+      <div id="vendasForm"></div>
+      <div id="vendasTable"></div>
     </section>
 
   </main>
-</div>
 
-<!-- include external logic file (script.js) -->
-<script src="script.js"></script>
-
-<!-- small wiring code to connect the form fields to functions defined in script.js -->
-<script>
-// wait until script.js loads
-window.addEventListener('load', () => {
-  // show dashboard by default
-  document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
-  document.getElementById('dashboard').classList.remove('hidden');
-
-  // menu buttons
-  document.querySelectorAll('.menu-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const sec = btn.dataset.section;
-      document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
-      document.getElementById(sec).classList.remove('hidden');
-    });
-  });
-
-  // --- IMask wiring for inputs ---
-  if (window.IMask) {
-    IMask(document.getElementById('cliCPF'), { mask: '000.000.000-00' });
-    IMask(document.getElementById('cliCelular'), { mask: '(00) 00000-0000' });
-    IMask(document.getElementById('cliCEP'), { mask: '00000-000' });
-  }
-
-  // --- Clientes: submit handler ---
-  const formCliente = document.getElementById('formCliente');
-  formCliente.addEventListener('submit', e => {
-    e.preventDefault();
-    const cliente = {
-      nome: document.getElementById('cliNome').value.trim(),
-      celular: document.getElementById('cliCelular').value.trim(),
-      email: document.getElementById('cliEmail').value.trim(),
-      cpf: document.getElementById('cliCPF').value.trim(),
-      rg: document.getElementById('cliRG').value.trim(),
-      cep: document.getElementById('cliCEP').value.trim(),
-      rua: document.getElementById('cliRua').value.trim(),
-      numero: document.getElementById('cliNumero').value.trim(),
-      bairro: document.getElementById('cliBairro').value.trim(),
-      cidade: document.getElementById('cliCidade').value.trim(),
-      estado: document.getElementById('cliEstado').value.trim(),
-      complemento: document.getElementById('cliComplemento').value.trim(),
-      referencia: document.getElementById('cliReferencia').value.trim()
-    };
-    if (typeof adicionarCliente === 'function') {
-      const ok = adicionarCliente(cliente);
-      if (ok) {
-        formCliente.reset();
-        atualizarListaClientes && atualizarListaClientes();
-        showToast && showToast('Cliente salvo.', 'success');
-      }
-    } else alert('Função adicionarCliente não encontrada. Verifique script.js');
-  });
-
-  // buscar inteligente na lista de clientes
-  const buscarSmart = document.getElementById('buscarClienteSmart');
-  buscarSmart && buscarSmart.addEventListener('input', () => {
-    const q = buscarSmart.value.toLowerCase();
-    const lista = document.getElementById('listaClientes');
-    if (!lista) return;
-    // rely on atualizarListaClientes to handle filtering if exists
-    if (typeof atualizarListaClientes === 'function') atualizarListaClientes();
-  });
-
-  // --- Produtos: submit handler ---
-  const formProduto = document.getElementById('formProduto');
-  formProduto.addEventListener('submit', e => {
-    e.preventDefault();
-    const produto = {
-      nome: document.getElementById('prodNome').value.trim(),
-      categoria: document.getElementById('prodCategoria').value.trim(),
-      quantidadeMedia: document.getElementById('prodQuantidadeMedia').value.trim(),
-      unidade: document.getElementById('prodUnidade').value,
-      precoCusto: parseFloat((document.getElementById('prodCusto').value||'').toString().replace(/[^0-9,.-]/g,'').replace(',','.')) || 0,
-      precoVenda: parseFloat((document.getElementById('prodVenda').value||'').toString().replace(/[^0-9,,-]/g,'').replace(',','.')) || 0,
-      obs: document.getElementById('prodObs').value.trim()
-    };
-    if (typeof adicionarProduto === 'function') {
-      adicionarProduto(produto);
-      formProduto.reset();
-      atualizarListaProdutos && atualizarListaProdutos();
-      showToast && showToast('Produto salvo.', 'success');
-    } else alert('Função adicionarProduto não encontrada.');
-  });
-
-  // --- Estoque: fill products and handle entrada/saída ---
-  function preencherSelectsEstoque() {
-    const sel = document.getElementById('estProduto');
-    const sel2 = document.getElementById('saleProduto');
-    const produtosLocal = JSON.parse(localStorage.getItem('produtos')||'[]');
-    if (sel) sel.innerHTML = produtosLocal.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-    if (sel2) sel2.innerHTML = produtosLocal.map(p => `<option value="${p.nome}">${p.nome}</option>`).join('');
-    // saleCliente options
-    const clientesLocal = JSON.parse(localStorage.getItem('clientes')||'[]');
-    const saleCliente = document.getElementById('saleCliente');
-    if (saleCliente) saleCliente.innerHTML = `<option value="">-- Consumidor Final --</option>` + clientesLocal.map(c => `<option value="${c.nome}">${c.nome} — ${c.celular}</option>`).join('');
-  }
-
-  preencherSelectsEstoque();
-
-  document.getElementById('btnEntrada').addEventListener('click', e => {
-    e.preventDefault();
-    const produtoId = Number(document.getElementById('estProduto').value);
-    const lote = document.getElementById('estLote').value.trim();
-    const qtd = Number(document.getElementById('estQuantidade').value);
-    if (!produtoId || !lote || !qtd) return showToast('Preencha produto, lote e quantidade.', 'warn');
-    if (typeof registrarEntrada === 'function') {
-      registrarEntrada(produtoId, lote, qtd);
-      preencherSelectsEstoque();
-      atualizarEstoqueUI && atualizarEstoqueUI();
-      showToast && showToast('Entrada registrada.', 'success');
-    } else alert('Função registrarEntrada não encontrada.');
-  });
-
-  document.getElementById('btnSaida').addEventListener('click', e => {
-    e.preventDefault();
-    const produtoId = Number(document.getElementById('estProduto').value);
-    const lote = document.getElementById('estLote').value.trim();
-    const qtd = Number(document.getElementById('estQuantidade').value);
-    if (!produtoId || !qtd) return showToast('Preencha produto e quantidade.', 'warn');
-    if (typeof registrarSaida === 'function') {
-      registrarSaida(produtoId, lote, qtd);
-      preencherSelectsEstoque();
-      atualizarEstoqueUI && atualizarEstoqueUI();
-      showToast && showToast('Saída registrada.', 'success');
-    } else alert('Função registrarSaida não encontrada.');
-  });
-
-  // --- Vendas: basic wiring (add item + finalize) - relies on functions in script.js ---
-  const btnAddItem = document.getElementById('btnAddItem');
-  btnAddItem && btnAddItem.addEventListener('click', e => {
-    e.preventDefault();
-    const prodName = document.getElementById('saleProduto').value;
-    const qtd = Number(document.getElementById('saleQuantidade').value);
-    const lote = document.getElementById('saleLote').value || null;
-    const preco = parseFloat((document.getElementById('salePreco').value||'0').toString().replace(/[^0-9,.-]/g,'').replace(',','.')) || 0;
-    if (!prodName || !qtd) return showToast('Produto e quantidade obrigatórios.', 'warn');
-    // add temp row in table
-    const tbody = document.getElementById('saleItens');
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td class="p-2">${prodName}</td><td class="p-2">${lote||''}</td><td class="p-2">${qtd}</td><td class="p-2">--</td><td class="p-2">${preco.toFixed(2)}</td><td class="p-2">${(preco*qtd).toFixed(2)}</td><td class="p-2"><button class='bg-red-500 text-white px-2 py-1 rounded' onclick="this.closest('tr').remove();">Remover</button></td>`;
-    tbody.appendChild(tr);
-    atualizarTotaisVenda && atualizarTotaisVenda();
-    showToast && showToast('Item adicionado (temporário na UI).', 'success');
-  });
-
-  document.getElementById('btnFinalizarVenda').addEventListener('click', () => {
-    // gather items from table
-    const rows = Array.from(document.querySelectorAll('#saleItens tr'));
-    if (!rows.length) return showToast('Adicione itens à venda.', 'warn');
-    const itens = rows.map(r => {
-      const cells = r.querySelectorAll('td');
-      return { produtoNome: cells[0].innerText, lote: cells[1].innerText || null, quantidade: Number(cells[2].innerText), preco: parseFloat(cells[4].innerText) };
-    });
-    const venda = { cliente: document.getElementById('saleCliente').value || 'Consumidor Final', data: new Date().toISOString(), itens, total: Number(document.getElementById('saleTotal').innerText.replace(/[^0-9,-]/g,'').replace(',','.')) };
-    if (typeof adicionarVenda === 'function') {
-      adicionarVenda(venda);
-      // clear UI
-      document.getElementById('saleItens').innerHTML = '';
-      atualizarVendasLista && atualizarVendasLista();
-      atualizarEstoqueUI && atualizarEstoqueUI();
-      showToast && showToast('Venda registrada.', 'success');
-    } else alert('Função adicionarVenda não encontrada.');
-  });
-
-  // auxiliary: update totals (simple)
-  window.atualizarTotaisVenda = function() {
-    const rows = Array.from(document.querySelectorAll('#saleItens tr'));
-    let subtotal = 0;
-    rows.forEach(r => { const cells = r.querySelectorAll('td'); subtotal += Number(cells[5].innerText); });
-    const descontoPct = Number(document.getElementById('saleDesconto').value) || 0;
-    const descontoValor = subtotal * (descontoPct/100);
-    const total = subtotal - descontoValor;
-    document.getElementById('saleSubtotal').innerText = 'R$ ' + subtotal.toFixed(2);
-    document.getElementById('saleDescontoValor').innerText = 'R$ ' + descontoValor.toFixed(2);
-    document.getElementById('saleTotal').innerText = 'R$ ' + total.toFixed(2);
-  };
-
-  // update selects and lists periodically
-  setInterval(() => { preencherSelectsEstoque(); atualizarListaClientes && atualizarListaClientes(); atualizarListaProdutos && atualizarListaProdutos(); atualizarEstoqueUI && atualizarEstoqueUI(); atualizarVendasLista && atualizarVendasLista(); atualizarDashboard && atualizarDashboard(); }, 1000);
-
-});
-</script>
-
+  <script src="script.js"></script>
 </body>
 </html>
