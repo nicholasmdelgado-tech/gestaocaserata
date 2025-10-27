@@ -226,3 +226,43 @@ function atualizarDashboard() {
     </div>
   `;
 }
+// ==========================================
+// COMPATIBILIDADE: Funções chamadas no HTML
+// ==========================================
+
+// Compatibilidade com versões antigas do HTML
+function adicionarProduto() {
+  const nome = prompt("Nome do produto:");
+  if (!nome) return toast("Nome obrigatório", "erro");
+
+  const categoria = prompt("Categoria:");
+  const unidade = prompt("Unidade (Kg, L, mL):");
+  const pesoMedio = parseFloat(prompt("Peso médio:") || 0);
+  const precoCusto = parseFloat(prompt("Preço de custo:") || 0);
+  const precoVenda = parseFloat(prompt("Preço de venda:") || 0);
+
+  const produto = {
+    id: gerarId("PROD"),
+    nome,
+    categoria,
+    unidade,
+    pesoMedio,
+    precoCusto,
+    precoVenda,
+    data: new Date().toLocaleDateString()
+  };
+
+  cadastrarProduto(produto);
+  carregarTabelas();
+  toast("Produto adicionado com sucesso!", "sucesso");
+}
+
+// Mesmo para clientes, caso o HTML use esse nome
+function adicionarCliente() {
+  const nome = prompt("Nome do cliente:");
+  const celular = prompt("Celular:");
+  const cpf = prompt("CPF:");
+  const cliente = { id: gerarId("CLI"), nome, celular, cpf };
+  cadastrarCliente(cliente);
+  carregarTabelas();
+}
