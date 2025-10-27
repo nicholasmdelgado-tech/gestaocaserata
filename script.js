@@ -1,268 +1,202 @@
-// ===========================
-// GESTÃO DE QUEIJARIA - SCRIPT PRINCIPAL
-// ===========================
+// ==============================
+// GESTÃO DE QUEIJARIA - SCRIPT
+// ==============================
 
-// ===========================
-// ESTRUTURA BASE E NAVEGAÇÃO
-// ===========================
-document.addEventListener("DOMContentLoaded", () => {
-  const sections = document.querySelectorAll(".content-section");
-  const menuButtons = document.querySelectorAll(".menu-item");
+// Utilitários ------------------
+function getData(key) {
+  return JSON.parse(localStorage.getItem(key) || '[]');
+}
+function setData(key, data) {
+  localStorage.setItem(key, JSON.stringify(data));
+}
+function gerarId(prefix) {
+  return prefix + '_' + Date.now();
+}
+function toast(msg, tipo = 'info') {
+  alert(msg); // Pode ser substituído futuramente por um componente visual
+}
 
-  menuButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const target = btn.getAttribute("data-target");
-      sections.forEach(sec => sec.classList.add("hidden"));
-      document.getElementById(target).classList.remove("hidden");
-    });
+// Inicialização ------------------
+const sections = document.querySelectorAll('.content-section');
+const menuItems = document.querySelectorAll('.menu-item');
+menuItems.forEach(btn => {
+  btn.addEventListener('click', () => {
+    sections.forEach(sec => sec.classList.add('hidden'));
+    document.getElementById(btn.dataset.target).classList.remove('hidden');
   });
-
-  atualizarDashboard();
-  carregarProdutosSelect();
-  carregarTabelas();
 });
 
-// ===========================
-// UTILITÁRIOS GERAIS
-// ===========================
-function salvarLocal(nome, dados) {
-  localStorage.setItem(nome, JSON.stringify(dados));
-}
-
-function lerLocal(nome) {
-  return JSON.parse(localStorage.getItem(nome) || "[]");
-}
-
-function gerarId(prefixo) {
-  return `${prefixo}-${Date.now()}`;
-}
-
-function toast(msg, tipo = "info") {
-  const cor = tipo === "erro" ? "bg-red-600" : tipo === "sucesso" ? "bg-green-600" : "bg-blue-600";
-  const div = document.createElement("div");
-  div.className = `${cor} text-white px-4 py-2 rounded shadow-lg fixed bottom-4 right-4 z-50 animate-fade-in`;
-  div.textContent = msg;
-  document.body.appendChild(div);
-  setTimeout(() => div.remove(), 3000);
-}
-
-// ===========================
+// ==============================
 // CLIENTES
-// ===========================
-function cadastrarCliente(cliente) {
-  let clientes = lerLocal("clientes");
-  const existe = clientes.find(c => c.cpf === cliente.cpf || c.celular === cliente.celular);
-  if (existe) return toast("Cliente com CPF ou celular já cadastrado!", "erro");
-  clientes.push(cliente);
-  salvarLocal("clientes", clientes);
-  toast("Cliente cadastrado com sucesso!", "sucesso");
-  atualizarDashboard();
-}
+// ==============================
+const formClientes = document.getElementById('formClientes');
+const clientesTable = document.getElementById('clientesTable');
 
-// ===========================
-// PRODUTOS
-// ===========================
-function cadastrarProduto(produto) {
-  let produtos = lerLocal("produtos");
-  produtos.push(produto);
-  salvarLocal("produtos", produtos);
-  carregarProdutosSelect();
-  toast("Produto cadastrado!", "sucesso");
-  atualizarDashboard();
-}
+formClientes.addEventListener('submit', e => {
+  e.preventDefault();
+  const nome = clienteNome.value.trim();
+  const celular = clienteCelular.value.trim();
+  const cpf = clienteCPF.value.trim();
+  const rg = clienteRG.value.trim();
+  const email = clienteEmail.value.trim();
+  const cep = clienteCEP.value.trim();
+  const endereco = clienteEndereco.value.trim();
+  const numero = clienteNumero.value.trim();
+  const complemento = clienteComplemento.value.trim();
+  const referencia = clienteReferencia.value.trim();
 
-// ===========================
-// ESTOQUE
-// ===========================
-document.addEventListener("DOMContentLoaded", () => {
-  const btnEntrada = document.getElementById("btnEntrada");
-  const btnSaida = document.getElementById("btnSaida");
+  if (!nome || !celular || !cpf || !cep || !numero) {
+    return toast('Preencha todos os campos obrigatórios', 'erro');
+  }
 
-  if (btnEntrada)
-    btnEntrada.addEventListener("click", e => {
-      e.preventDefault();
-      registrarMovimentoEstoque("entrada");
-    });
+  let clientes = getData('clientes');
+  if (clientes.some(c => c.celular === celular || c.cpf === cpf)) {
+    return toast('Cliente já cadastrado com este celular ou CPF!', 'erro');
+  }
 
-  if (btnSaida)
-    btnSaida.addEventListener("click", e => {
-      e.preventDefault();
-      registrarMovimentoEstoque("saida");
-    });
+  clientes.push({ id: gerarId('CLI'), nome, celular, cpf, rg, email, cep, endereco, numero, complemento, referencia });
+  setData('clientes', clientes);
+  formClientes.reset();
+  renderClientes();
+  toast('Cliente salvo com sucesso!', 'sucesso');
 });
 
-function registrarMovimentoEstoque(tipo) {
-  const produtoSelect = document.getElementById("estoqueProduto");
-  const lote = document.getElementById("estoqueLote").value.trim();
-  const qtd = parseFloat(document.getElementById("estoqueQtd").value);
-
-  if (!produtoSelect.value || !lote || isNaN(qtd) || qtd <= 0) {
-    toast("Preencha todos os campos corretamente!", "erro");
+function renderClientes() {
+  const clientes = getData('clientes');
+  if (clientes.length === 0) {
+    clientesTable.innerHTML = '<p class="text-gray-500">Nenhum cliente cadastrado.</p>';
     return;
   }
+  clientesTable.innerHTML = `
+    <table class="w-full bg-white rounded shadow">
+      <thead><tr class="bg-green-600 text-white"><th class="p-2">Nome</th><th>Celular</th><th>CPF</th><th>E-mail</th></tr></thead>
+      <tbody>
+        ${clientes.map(c => `<tr class="border-t"><td class="p-2">${c.nome}</td><td>${c.celular}</td><td>${c.cpf}</td><td>${c.email || ''}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
+}
 
-  let estoque = lerLocal("estoque");
-  const produto = produtoSelect.value;
+// ==============================
+// PRODUTOS
+// ==============================
+const formProdutos = document.getElementById('formProdutos');
+const produtosTable = document.getElementById('produtosTable');
 
-  let registro = estoque.find(e => e.produto === produto && e.lote === lote);
+formProdutos.addEventListener('submit', e => {
+  e.preventDefault();
+  const nome = produtoNome.value.trim();
+  const categoria = produtoCategoria.value.trim();
+  const unidade = produtoUnidade.value;
+  const pesoMedio = parseFloat(produtoPesoMedio.value.replace(',', '.')) || 0;
+  const precoCusto = parseFloat(produtoPrecoCusto.value.replace(',', '.')) || 0;
+  const precoVenda = parseFloat(produtoPrecoVenda.value.replace(',', '.')) || 0;
 
-  if (!registro) {
-    registro = { produto, lote, quantidade: 0, data: new Date().toLocaleString() };
-    estoque.push(registro);
+  if (!nome || !pesoMedio || !precoCusto || !precoVenda) {
+    return toast('Preencha todos os campos obrigatórios', 'erro');
   }
 
-  if (tipo === "entrada") registro.quantidade += qtd;
-  else if (tipo === "saida") registro.quantidade -= qtd;
+  let produtos = getData('produtos');
+  produtos.push({ id: gerarId('PROD'), nome, categoria, unidade, pesoMedio, precoCusto, precoVenda });
+  setData('produtos', produtos);
+  formProdutos.reset();
+  renderProdutos();
+  carregarProdutosSelect();
+  toast('Produto salvo com sucesso!', 'sucesso');
+});
 
-  if (registro.quantidade < 0) registro.quantidade = 0;
-  registro.data = new Date().toLocaleString();
-
-  salvarLocal("estoque", estoque);
-  carregarTabelas();
-  toast(`Movimentação de ${tipo} registrada com sucesso!`, "sucesso");
+function renderProdutos() {
+  const produtos = getData('produtos');
+  if (produtos.length === 0) {
+    produtosTable.innerHTML = '<p class="text-gray-500">Nenhum produto cadastrado.</p>';
+    return;
+  }
+  produtosTable.innerHTML = `
+    <table class="w-full bg-white rounded shadow">
+      <thead><tr class="bg-green-600 text-white"><th class="p-2">Nome</th><th>Categoria</th><th>Unidade</th><th>Peso</th><th>Custo</th><th>Venda</th></tr></thead>
+      <tbody>
+        ${produtos.map(p => `<tr class="border-t"><td class="p-2">${p.nome}</td><td>${p.categoria}</td><td>${p.unidade}</td><td>${p.pesoMedio}</td><td>${p.precoCusto.toFixed(2)}</td><td>${p.precoVenda.toFixed(2)}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
-// ===========================
-// VENDAS
-// ===========================
-function registrarVenda(venda) {
-  let vendas = lerLocal("vendas");
-  vendas.push(venda);
-  salvarLocal("vendas", vendas);
-  atualizarDashboard();
-  toast("Venda registrada com sucesso!", "sucesso");
+// ==============================
+// ESTOQUE
+// ==============================
+const btnEntrada = document.getElementById('btnEntrada');
+const btnSaida = document.getElementById('btnSaida');
+const estoqueTable = document.getElementById('estoqueTable');
+
+btnEntrada.addEventListener('click', () => atualizarEstoque('entrada'));
+btnSaida.addEventListener('click', () => atualizarEstoque('saida'));
+
+function atualizarEstoque(tipo) {
+  const produtoId = estoqueProduto.value;
+  const lote = estoqueLote.value.trim();
+  const qtd = parseFloat(estoqueQtd.value);
+  if (!produtoId || !lote || !qtd) {
+    return toast('Preencha todos os campos do estoque!', 'erro');
+  }
+  let estoque = getData('estoque');
+  const item = estoque.find(e => e.produtoId === produtoId && e.lote === lote);
+  if (item) {
+    item.qtd = tipo === 'entrada' ? item.qtd + qtd : item.qtd - qtd;
+  } else {
+    estoque.push({ id: gerarId('EST'), produtoId, lote, qtd });
+  }
+  setData('estoque', estoque);
+  renderEstoque();
+  toast('Movimentação registrada com sucesso!', 'sucesso');
 }
 
-// ===========================
-// TABELAS E DASHBOARD
-// ===========================
+function renderEstoque() {
+  const produtos = getData('produtos');
+  const estoque = getData('estoque');
+  if (estoque.length === 0) {
+    estoqueTable.innerHTML = '<p class="text-gray-500">Nenhum registro de estoque.</p>';
+    return;
+  }
+  estoqueTable.innerHTML = `
+    <table class="w-full bg-white rounded shadow">
+      <thead><tr class="bg-green-600 text-white"><th class="p-2">Produto</th><th>Lote</th><th>Quantidade</th></tr></thead>
+      <tbody>
+        ${estoque.map(e => {
+          const produto = produtos.find(p => p.id === e.produtoId);
+          return `<tr class="border-t"><td class="p-2">${produto ? produto.nome : 'Produto removido'}</td><td>${e.lote}</td><td>${e.qtd}</td></tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
 function carregarProdutosSelect() {
-  const select = document.getElementById("estoqueProduto");
-  if (!select) return;
-  const produtos = lerLocal("produtos");
-  select.innerHTML = produtos.map(p => `<option value="${p.nome}">${p.nome}</option>`).join("");
+  const produtos = getData('produtos');
+  estoqueProduto.innerHTML = produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
 }
 
-function carregarTabelas() {
-  const estoqueDiv = document.getElementById("estoqueTable");
-  const estoque = lerLocal("estoque");
-
-  if (estoqueDiv) {
-    if (estoque.length === 0) {
-      estoqueDiv.innerHTML = "<p class='text-gray-600'>Nenhum registro de estoque ainda.</p>";
-      return;
-    }
-
-    let html = `
-      <table class="min-w-full bg-white border border-gray-200 rounded shadow">
-        <thead class="bg-green-600 text-white">
-          <tr>
-            <th class="px-4 py-2 text-left">Produto</th>
-            <th class="px-4 py-2 text-left">Lote</th>
-            <th class="px-4 py-2 text-right">Quantidade</th>
-            <th class="px-4 py-2 text-right">Última Movimentação</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-
-    let total = 0;
-    estoque.forEach(item => {
-      total += item.quantidade;
-      html += `
-        <tr class="border-b">
-          <td class="px-4 py-2">${item.produto}</td>
-          <td class="px-4 py-2">${item.lote}</td>
-          <td class="px-4 py-2 text-right">${item.quantidade.toFixed(2)}</td>
-          <td class="px-4 py-2 text-right">${item.data}</td>
-        </tr>`;
-    });
-
-    html += `
-        </tbody>
-        <tfoot>
-          <tr class="font-bold bg-gray-100">
-            <td colspan="2" class="px-4 py-2 text-right">Total:</td>
-            <td colspan="2" class="px-4 py-2 text-right">${total.toFixed(2)}</td>
-          </tr>
-        </tfoot>
-      </table>
-    `;
-    estoqueDiv.innerHTML = html;
-  }
-
-  atualizarDashboard();
+// ==============================
+// DASHBOARD
+// ==============================
+function renderDashboard() {
+  const clientes = getData('clientes').length;
+  const produtos = getData('produtos').length;
+  const estoque = getData('estoque');
+  const totalEstoque = estoque.reduce((acc, e) => acc + e.qtd, 0);
+  document.getElementById('cardsDashboard').innerHTML = `
+    <div class='bg-white p-4 rounded shadow text-center'><h2 class='text-lg font-bold'>Clientes</h2><p class='text-2xl'>${clientes}</p></div>
+    <div class='bg-white p-4 rounded shadow text-center'><h2 class='text-lg font-bold'>Produtos</h2><p class='text-2xl'>${produtos}</p></div>
+    <div class='bg-white p-4 rounded shadow text-center'><h2 class='text-lg font-bold'>Itens em Estoque</h2><p class='text-2xl'>${totalEstoque}</p></div>`;
 }
 
-function atualizarDashboard() {
-  const clientes = lerLocal("clientes");
-  const produtos = lerLocal("produtos");
-  const estoque = lerLocal("estoque");
-  const vendas = lerLocal("vendas");
+// ==============================
+// INICIALIZAÇÃO AO CARREGAR
+// ==============================
+document.addEventListener('DOMContentLoaded', () => {
+  renderClientes();
+  renderProdutos();
+  renderEstoque();
+  renderDashboard();
+  carregarProdutosSelect();
 
-  const cardsDiv = document.getElementById("cardsDashboard");
-  if (!cardsDiv) return;
-
-  const totalEstoque = estoque.reduce((acc, e) => acc + e.quantidade, 0);
-  const totalVendas = vendas.length;
-  const totalClientes = clientes.length;
-
-  cardsDiv.innerHTML = `
-    <div class="bg-white p-4 rounded-lg shadow text-center">
-      <h3 class="text-gray-600">Clientes</h3>
-      <p class="text-2xl font-bold text-green-700">${totalClientes}</p>
-    </div>
-    <div class="bg-white p-4 rounded-lg shadow text-center">
-      <h3 class="text-gray-600">Produtos</h3>
-      <p class="text-2xl font-bold text-green-700">${produtos.length}</p>
-    </div>
-    <div class="bg-white p-4 rounded-lg shadow text-center">
-      <h3 class="text-gray-600">Total em Estoque</h3>
-      <p class="text-2xl font-bold text-green-700">${totalEstoque.toFixed(2)}</p>
-    </div>
-    <div class="bg-white p-4 rounded-lg shadow text-center">
-      <h3 class="text-gray-600">Vendas</h3>
-      <p class="text-2xl font-bold text-green-700">${totalVendas}</p>
-    </div>
-  `;
-}
-// ==========================================
-// COMPATIBILIDADE: Funções chamadas no HTML
-// ==========================================
-
-// Compatibilidade com versões antigas do HTML
-function adicionarProduto() {
-  const nome = prompt("Nome do produto:");
-  if (!nome) return toast("Nome obrigatório", "erro");
-
-  const categoria = prompt("Categoria:");
-  const unidade = prompt("Unidade (Kg, L, mL):");
-  const pesoMedio = parseFloat(prompt("Peso médio:") || 0);
-  const precoCusto = parseFloat(prompt("Preço de custo:") || 0);
-  const precoVenda = parseFloat(prompt("Preço de venda:") || 0);
-
-  const produto = {
-    id: gerarId("PROD"),
-    nome,
-    categoria,
-    unidade,
-    pesoMedio,
-    precoCusto,
-    precoVenda,
-    data: new Date().toLocaleDateString()
-  };
-
-  cadastrarProduto(produto);
-  carregarTabelas();
-  toast("Produto adicionado com sucesso!", "sucesso");
-}
-
-// Mesmo para clientes, caso o HTML use esse nome
-function adicionarCliente() {
-  const nome = prompt("Nome do cliente:");
-  const celular = prompt("Celular:");
-  const cpf = prompt("CPF:");
-  const cliente = { id: gerarId("CLI"), nome, celular, cpf };
-  cadastrarCliente(cliente);
-  carregarTabelas();
-}
+  IMask(document.getElementById('clienteCelular'), { mask: '(00) 00000-0000' });
+  IMask(document.getElementById('clienteCPF'), { mask: '000.000.000-00' });
+  IMask(document.getElementById('clienteCEP'), { mask: '00000-000' });
+});
