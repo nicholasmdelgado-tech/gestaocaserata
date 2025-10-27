@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestão Queijaria — PDV</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- IMask -->
+  <script src="https://unpkg.com/imask"></script>
+
+  <!-- Export libs -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    body { background-color:#FFFBF0; }
+    .table-wrapper { max-height:55vh; overflow:auto; }
+    .modal-backdrop { background: rgba(0,0,0,0.45); }
+    #toastContainer { position: fixed; right: 20px; top: 20px; z-index: 60; display:flex; flex-direction:column; gap:8px; }
+  </style>
+</head>
+<body class="min-h-screen font-sans text-gray-800">
+
+  <div id="toastContainer" aria-live="polite"></div>
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-72 bg-yellow-800 text-white p-6">
+      <h1 class="text-2xl font-bold mb-6">🧀 Gestão Queijaria</h1>
+      <nav class="space-y-3">
+        <button class="menu-btn block w-full text-left px-4 py-2 rounded bg-yellow-700 hover:bg-yellow-600" data-section="dashboard">📊 Dashboard</button>
+        <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-yellow-700" data-section="clientes">👥 Clientes</button>
+        <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-yellow-700" data-section="produtos">📦 Produtos</button>
+        <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-yellow-700" data-section="estoque">🧺 Estoque</button>
+        <button class="menu-btn block w-full text-left px-4 py-2 rounded hover:bg-yellow-700" data-section="vendas">💳 Vendas</button>
+      </nav>
+      <p class="mt-8 text-sm text-yellow-100">Dados locais — salvo no navegador (LocalStorage).</p>
+    </aside>
+
+    <!-- Main -->
+    <main class="flex-1 p-8 space-y-8 overflow-auto">
+
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="content-section">
+        <h2 class="text-2xl font-semibold mb-4">📊 Dashboard</h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="bg-white shadow rounded p-4 text-center">
+            <h3 class="text-gray-500">Clientes</h3>
+            <p id="dashClientes" class="text-3xl font-bold text-yellow-700">0</p>
+          </div>
+
+          <div class="bg-white shadow rounded p-4 text-center">
+            <h3 class="text-gray-500">Produtos</h3>
+            <p id="dashProdutos" class="text-3xl font-bold text-yellow-700">0</p>
+          </div>
+
+          <div class="bg-white shadow rounded p-4 text-center">
+            <h3 class="text-gray-500">Valor total do estoque</h3>
+            <p id="dashValorEstoque" class="text-2xl font-bold text-yellow-700">R$ 0,00</p>
+          </div>
+
+          <div class="bg-white shadow rounded p-4 text-center">
+            <h3 class="text-gray-500">Lucro potencial</h3>
+            <p id="dashLucroReal" class="text-xl font-semibold text-green-600">R$ 0,00</p>
+            <p id="dashLucroPct" class="text-sm text-gray-600">Lucro médio: 0%</p>
+            <p id="dashUltAtual" class="text-xs text-gray-400 mt-2">Última atual.: —</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CLIENTES -->
+      <section id="clientes" class="content-section hidden">
+        <h2 class="text-2xl font-semibold mb-4">👥 Cadastro de Clientes</h2>
+
+        <form id="formCliente" class="grid md:grid-cols-2 gap-4 bg-white p-6 rounded shadow">
+          <input id="cliNome" placeholder="Nome completo *" class="border p-2 rounded" required>
+          <input id="cliCelular" placeholder="Celular (00) 00000-0000 *" class="border p-2 rounded" required>
+          <input id="cliEmail" placeholder="E-mail" class="border p-2 rounded">
+          <input id="cliCPF" placeholder="CPF *" class="border p-2 rounded" required>
+          <input id="cliRG" placeholder="RG" class="border p-2 rounded">
+          <div class="flex gap-2">
+            <input id="cliCEP" placeholder="CEP *" onblur="buscarCEP(this.value)" class="flex-1 border p-2 rounded" required>
+            <button type="button" onclick="buscarCEP(document.getElementById('cliCEP').value)" class="bg-yellow-600 text-white px-4 rounded">Buscar</button>
+          </div>
+          <input id="cliRua" placeholder="Rua" class="border p-2 rounded">
+          <input id="cliNumero" placeholder="Número *" class="border p-2 rounded" required>
+          <input id="cliBairro" placeholder="Bairro" class="border p-2 rounded">
+          <input id="cliCidade" placeholder="Cidade" class="border p-2 rounded">
+          <input id="cliEstado" placeholder="Estado" class="border p-2 rounded uppercase" maxlength="2">
+          <input id="cliComplemento" placeholder="Complemento" class="border p-2 rounded">
+          <input id="cliReferencia" placeholder="Referência" class="border p-2 rounded col-span-2">
+          <div class="col-span-2 text-right">
+            <button type="submit" class="bg-yellow-700 text-white px-4 py-2 rounded">Salvar Cliente</button>
+          </div>
+        </form>
+
+        <div class="mt-6">
+          <div class="flex justify-between items-center mb-2">
+            <input id="buscarCliente" placeholder="Buscar cliente..." class="border p-2 rounded w-1/2">
+            <div>
+              <button onclick="exportarTabela('clientes','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded mr-2">⬇️ Excel</button>
+              <button onclick="exportarTabela('clientes','pdf')" class="bg-red-600 text-white px-3 py-1 rounded">⬇️ PDF</button>
+            </div>
+          </div>
+
+          <div class="table-wrapper bg-white rounded shadow">
+            <table class="min-w-full text-sm">
+              <thead class="bg-yellow-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-left">Nome</th>
+                  <th class="p-2">Celular</th>
+                  <th class="p-2">E-mail</th>
+                  <th class="p-2">CPF</th>
+                  <th class="p-2">Endereço</th>
+                  <th class="p-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="listaClientes"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUTOS -->
+      <section id="produtos" class="content-section hidden">
+        <h2 class="text-2xl font-semibold mb-4">📦 Cadastro de Produtos</h2>
+
+        <form id="formProduto" class="grid md:grid-cols-3 gap-4 bg-white p-6 rounded shadow items-end">
+          <div class="col-span-2">
+            <input id="prodNome" placeholder="Nome do produto *" class="border p-2 rounded w-full" required>
+          </div>
+
+          <div class="">
+            <input list="listaCategorias" id="prodCategoria" placeholder="Categoria *" class="border p-2 rounded w-full" required>
+            <datalist id="listaCategorias"></datalist>
+          </div>
+
+          <!-- Quantidade média + unidade -->
+          <div class="flex gap-2 items-center">
+            <input id="prodQuantidadeMedia" placeholder="Quantidade média *" class="border p-2 rounded w-full" required>
+            <select id="prodUnidade" class="border p-2 rounded">
+              <option value="Kg">Kg</option>
+              <option value="L">L</option>
+              <option value="mL">mL</option>
+            </select>
+          </div>
+
+          <input id="prodCusto" placeholder="Preço de custo (R$) *" class="border p-2 rounded" required>
+          <input id="prodVenda" placeholder="Preço de venda (R$) *" class="border p-2 rounded" required>
+          <textarea id="prodObs" placeholder="Observações" class="border p-2 rounded col-span-3"></textarea>
+
+          <div class="col-span-3 text-right">
+            <button type="submit" class="bg-yellow-700 text-white px-4 py-2 rounded">Salvar Produto</button>
+          </div>
+        </form>
+
+        <div class="mt-6">
+          <div class="flex justify-between items-center mb-2">
+            <input id="buscarProduto" placeholder="Buscar produto..." class="border p-2 rounded w-1/2">
+            <div>
+              <button onclick="exportarTabela('produtos','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded mr-2">⬇️ Excel</button>
+              <button onclick="exportarTabela('produtos','pdf')" class="bg-red-600 text-white px-3 py-1 rounded">⬇️ PDF</button>
+            </div>
+          </div>
+
+          <div class="table-wrapper bg-white rounded shadow">
+            <table class="min-w-full text-sm">
+              <thead class="bg-yellow-100 sticky top-0">
+                <tr>
+                  <th class="p-2 text-left">Produto</th>
+                  <th class="p-2">Categoria</th>
+                  <th class="p-2">Qtd. média</th>
+                  <th class="p-2">Custo</th>
+                  <th class="p-2">Venda</th>
+                  <th class="p-2">Lucro (%)</th>
+                  <th class="p-2">Qtd. em estoque</th>
+                  <th class="p-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="listaProdutos"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ESTOQUE -->
+      <section id="estoque" class="content-section hidden">
+        <h2 class="text-2xl font-semibold mb-4">🧺 Controle de Estoque</h2>
+
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-lg font-medium">Resumo do Estoque</h3>
+              <p class="text-sm text-gray-600">Valor total do estoque e total de itens.</p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm text-gray-500">Total de itens</p>
+              <p id="txtTotalItens" class="text-xl font-bold text-yellow-700">0</p>
+            </div>
+            <div class="text-right">
+              <p class="text-sm text-gray-500">Valor total do estoque</p>
+              <p id="txtValorTotalEstoque" class="text-xl font-bold text-yellow-700">R$ 0,00</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-4 flex justify-between items-center">
+          <div class="flex gap-2">
+            <button onclick="exportarTabela('estoque','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded mr-2">⬇️ Excel Estoque</button>
+            <button onclick="exportarTabela('estoque','pdf')" class="bg-red-600 text-white px-3 py-1 rounded">⬇️ PDF Estoque</button>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="exportarTabela('movimentacoes','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded mr-2">⬇️ Excel Histórico</button>
+            <button onclick="exportarTabela('movimentacoes','pdf')" class="bg-red-600 text-white px-3 py-1 rounded">⬇️ PDF Histórico</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper bg-white rounded shadow mb-6">
+          <table class="min-w-full text-sm">
+            <thead class="bg-yellow-100 sticky top-0">
+              <tr>
+                <th class="p-2 text-left">Produto</th>
+                <th class="p-2">Categoria</th>
+                <th class="p-2">Qtd. atual</th>
+                <th class="p-2">Unidade</th>
+                <th class="p-2">Custo unit.</th>
+                <th class="p-2">Valor total</th>
+                <th class="p-2">Lotes (entradas)</th>
+                <th class="p-2">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaEstoque"></tbody>
+          </table>
+        </div>
+
+        <h3 class="text-lg font-medium mb-2">Histórico de Movimentações</h3>
+        <div class="table-wrapper bg-white rounded shadow">
+          <table class="min-w-full text-sm">
+            <thead class="bg-yellow-100 sticky top-0">
+              <tr>
+                <th class="p-2">Data</th>
+                <th class="p-2">Produto</th>
+                <th class="p-2">Tipo</th>
+                <th class="p-2">Quantidade</th>
+                <th class="p-2">Unidade</th>
+                <th class="p-2">Lote</th>
+                <th class="p-2">Observação</th>
+              </tr>
+            </thead>
+            <tbody id="tabelaMovs"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VENDAS -->
+      <section id="vendas" class="content-section hidden">
+        <h2 class="text-2xl font-semibold mb-4">💳 Vendas (PDV)</h2>
+
+        <div class="bg-white p-4 rounded shadow mb-4">
+          <h3 class="font-medium mb-2">Registrar Venda</h3>
+
+          <div class="grid md:grid-cols-3 gap-3 items-end">
+            <div>
+              <label class="text-sm">Cliente</label>
+              <select id="saleCliente" class="border p-2 rounded w-full">
+                <option value="">-- Consumidor Final --</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="text-sm">Produto</label>
+              <select id="saleProduto" class="border p-2 rounded w-full"></select>
+            </div>
+
+            <div>
+              <label class="text-sm">Quantidade</label>
+              <input id="saleQuantidade" type="number" step="any" min="0.001" class="border p-2 rounded w-full" />
+            </div>
+
+            <div>
+              <label class="text-sm">Lote (saldo disponível)</label>
+              <select id="saleLote" class="border p-2 rounded w-full"></select>
+            </div>
+
+            <div>
+              <label class="text-sm">Preço unitário</label>
+              <input id="salePreco" class="border p-2 rounded w-full" readonly />
+            </div>
+
+            <div>
+              <label class="text-sm">Desconto (%)</label>
+              <input id="saleDesconto" type="number" step="0.1" min="0" class="border p-2 rounded w-full" value="0" />
+            </div>
+
+            <div class="md:col-span-3">
+              <button id="btnAddItem" class="bg-blue-600 text-white px-4 py-2 rounded">➕ Adicionar Item</button>
+            </div>
+          </div>
+
+          <div class="mt-4 table-wrapper bg-gray-50 p-3 rounded">
+            <table class="min-w-full text-sm bg-white rounded">
+              <thead class="bg-yellow-100">
+                <tr>
+                  <th class="p-2 text-left">Produto</th>
+                  <th class="p-2">Lote</th>
+                  <th class="p-2">Qtd</th>
+                  <th class="p-2">Unid.</th>
+                  <th class="p-2">Preço</th>
+                  <th class="p-2">Total</th>
+                  <th class="p-2">Lucro</th>
+                  <th class="p-2">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="saleItens"></tbody>
+            </table>
+          </div>
+
+          <div class="mt-4 flex justify-between items-center">
+            <div>
+              <button id="btnCancelarVenda" class="bg-gray-400 text-white px-3 py-1 rounded">Cancelar</button>
+            </div>
+            <div class="text-right">
+              <p class="text-sm text-gray-600">Subtotal: <span id="saleSubtotal">R$ 0,00</span></p>
+              <p class="text-sm text-gray-600">Desconto: <span id="saleDescontoValor">R$ 0,00</span></p>
+              <p class="text-xl font-bold">Total: <span id="saleTotal">R$ 0,00</span></p>
+              <div class="mt-2">
+                <button id="btnFinalizarVenda" class="bg-yellow-700 text-white px-4 py-2 rounded">Finalizar Venda</button>
+                <button onclick="exportarTabela('vendas','xlsx')" class="bg-green-600 text-white px-3 py-1 rounded ml-2">⬇️ Excel Vendas</button>
+                <button onclick="exportarTabela('vendas','pdf')" class="bg-red-600 text-white px-3 py-1 rounded ml-2">⬇️ PDF Vendas</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="text-lg font-medium mb-2">Histórico de Vendas</h3>
+        <div class="table-wrapper bg-white rounded shadow">
+          <table class="min-w-full text-sm">
+            <thead class="bg-yellow-100 sticky top-0">
+              <tr>
+                <th class="p-2">Data</th>
+                <th class="p-2">Código</th>
+                <th class="p-2">Cliente</th>
+                <th class="p-2">Itens</th>
+                <th class="p-2">Total</th>
+                <th class="p-2">Lucro</th>
+                <th class="p-2">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="listaVendas"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: venda detalhes -->
+  <div id="modalVendaDetalhe" class="fixed inset-0 hidden items-center justify-center z-50">
+    <div class="modal-backdrop absolute inset-0"></div>
+    <div class="bg-white rounded shadow-lg z-50 w-11/12 max-w-2xl p-6">
+      <h3 id="modalVendaTitle" class="text-lg font-semibold mb-3">Detalhes da venda</h3>
+      <div id="modalVendaBody"></div>
+      <div class="flex justify-end mt-4">
+        <button onclick="fecharModalVenda()" class="px-4 py-2 rounded border">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
