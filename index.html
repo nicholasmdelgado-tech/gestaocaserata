@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gestão de Queijaria</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gestão Queijaria</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/imask"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -11,7 +11,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex">
 
-  <!-- MENU LATERAL -->
+  <!-- Lateral -->
   <aside class="w-64 bg-green-800 text-white flex flex-col">
     <div class="text-2xl font-bold text-center py-4 border-b border-green-700">🧀 Queijaria</div>
     <nav class="flex-1 p-4 space-y-2">
@@ -23,7 +23,7 @@
     </nav>
   </aside>
 
-  <!-- CONTEÚDO PRINCIPAL -->
+  <!-- Main -->
   <main class="flex-1 p-6 overflow-y-auto">
 
     <!-- DASHBOARD -->
@@ -35,6 +35,10 @@
     <!-- CLIENTES -->
     <section id="clientes" class="content-section hidden">
       <h1 class="text-2xl font-bold mb-4">👥 Clientes</h1>
+      <div class="mb-3 flex gap-2">
+        <input id="buscarClientes" placeholder="Buscar por nome, CPF ou telefone" class="border p-2 rounded flex-1" />
+        <button id="exportClientes" class="bg-blue-600 text-white px-3 py-2 rounded">Exportar</button>
+      </div>
       <form id="formClientes" class="bg-white p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <input type="text" id="clienteNome" placeholder="Nome completo" class="border p-2 rounded" required>
         <input type="text" id="clienteCelular" placeholder="Celular" class="border p-2 rounded" required>
@@ -42,7 +46,7 @@
         <input type="text" id="clienteRG" placeholder="RG (opcional)" class="border p-2 rounded">
         <input type="email" id="clienteEmail" placeholder="E-mail" class="border p-2 rounded">
         <input type="text" id="clienteCEP" placeholder="CEP" class="border p-2 rounded" required>
-        <input type="text" id="clienteEndereco" placeholder="Endereço" class="border p-2 rounded">
+        <input type="text" id="clienteEndereco" placeholder="Endereço (rua)" class="border p-2 rounded">
         <input type="text" id="clienteNumero" placeholder="Nº" class="border p-2 rounded" required>
         <input type="text" id="clienteComplemento" placeholder="Complemento" class="border p-2 rounded">
         <input type="text" id="clienteReferencia" placeholder="Referência" class="border p-2 rounded">
@@ -54,6 +58,10 @@
     <!-- PRODUTOS -->
     <section id="produtos" class="content-section hidden">
       <h1 class="text-2xl font-bold mb-4">📦 Produtos</h1>
+      <div class="mb-3 flex gap-2">
+        <input id="buscarProdutos" placeholder="Buscar produtos" class="border p-2 rounded flex-1" />
+        <button id="exportProdutos" class="bg-blue-600 text-white px-3 py-2 rounded">Exportar</button>
+      </div>
       <form id="formProdutos" class="bg-white p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <input type="text" id="produtoNome" placeholder="Nome do Produto" class="border p-2 rounded" required>
         <input type="text" id="produtoCategoria" placeholder="Categoria" class="border p-2 rounded">
@@ -62,7 +70,7 @@
           <option value="L">Litro</option>
           <option value="mL">mL</option>
         </select>
-        <input type="text" id="produtoPesoMedio" placeholder="Peso Médio" class="border p-2 rounded" required>
+        <input type="text" id="produtoPesoMedio" placeholder="Peso Médio (ex: 0.500)" class="border p-2 rounded" required>
         <input type="text" id="produtoPrecoCusto" placeholder="Preço de Custo" class="border p-2 rounded" required>
         <input type="text" id="produtoPrecoVenda" placeholder="Preço de Venda" class="border p-2 rounded" required>
         <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded col-span-full">Salvar Produto</button>
@@ -104,6 +112,22 @@
     </section>
 
   </main>
+
+  <!-- Modal Novo Cliente (flutuante) -->
+  <div id="modalNovoCliente" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-40 z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-lg">
+      <h3 class="text-lg font-semibold mb-2">Novo Cliente</h3>
+      <form id="formModalCliente" class="grid grid-cols-1 gap-2">
+        <input id="modalNome" placeholder="Nome" class="border p-2 rounded" required />
+        <input id="modalCelular" placeholder="Celular" class="border p-2 rounded" required />
+        <input id="modalCPF" placeholder="CPF" class="border p-2 rounded" required />
+        <div class="flex justify-end gap-2 mt-2">
+          <button type="button" id="modalCancelar" class="px-3 py-1 rounded border">Cancelar</button>
+          <button type="submit" id="modalSalvar" class="bg-green-600 text-white px-3 py-1 rounded">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
